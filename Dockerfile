@@ -1,17 +1,20 @@
-# Use official OpenJDK image
-FROM eclipse-temurin:24-jdk
+# ---------- BUILD STAGE ----------
+FROM maven:3.9.9-eclipse-temurin-24 AS build
 
-# Set working directory
 WORKDIR /app
 
-# Copy project files
-COPY . .
+COPY pom.xml .
+COPY src ./src
 
-# Build the application
-RUN ./mvnw clean package -DskipTests
+RUN mvn clean package -DskipTests
 
-# Expose port
+# ---------- RUNTIME STAGE ----------
+FROM eclipse-temurin:24-jdk
+
+WORKDIR /app
+
+COPY --from=build /app/target/*.jar app.jar
+
 EXPOSE 8080
 
-# Run the jar
-CMD ["java", "-jar", "target/ctts-0.0.1-SNAPSHOT.jar"]
+ENTRYPOINT ["java", "-jar", "app.jar"]
