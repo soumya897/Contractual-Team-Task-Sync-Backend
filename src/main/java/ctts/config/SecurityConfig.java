@@ -16,7 +16,6 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
-
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
@@ -36,7 +35,7 @@ public class SecurityConfig {
 
         configuration.setAllowedOrigins(List.of(
                 "http://localhost:5174",
-                "https://your-frontend-domain.com"   // later for production
+                "https://your-frontend-domain.com" // production frontend
         ));
 
         configuration.setAllowedMethods(List.of(
@@ -54,7 +53,6 @@ public class SecurityConfig {
         return source;
     }
 
-
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
@@ -65,10 +63,26 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(auth -> auth
+
+                        // 🔓 Public APIs
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/client/**").hasRole("CLIENT")
-                        .requestMatchers("/developer/**").hasRole("DEVELOPER")
+
+                        // 🔐 Admin APIs
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+
+                        // 🔐 Client APIs
+                        .requestMatchers("/api/client/**").hasRole("CLIENT")
+
+                        // 🔐 Developer APIs
+                        .requestMatchers("/api/developer/**").hasRole("DEVELOPER")
+
+                        // 🔐 Project APIs (Any logged-in user)
+                        .requestMatchers("/api/projects/**").authenticated()
+
+                        // 🔐 Task APIs (Any logged-in user)
+                        .requestMatchers("/api/tasks/**").authenticated()
+
+                        // 🔐 Everything else
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

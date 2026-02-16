@@ -1,5 +1,6 @@
 package ctts.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -20,11 +21,15 @@ public class User {
 
     private String ph;
 
-    @Column(unique = true)
+    @Column(unique = true, nullable = false)
     private String email;
 
+    // 🔐 NEVER expose password in API response
+    @JsonIgnore
+    @Column(nullable = false)
     private String password;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private Role role;
 }
