@@ -41,5 +41,18 @@ public class ProjectController {
         return projectService.updateProject(id, request);
     }
 
+    // 👨‍💻 Developer Dashboard
+    @GetMapping("/developer")
+    public List<Project> getDeveloperProjects() {
+        return projectService.getProjectsForDeveloper();
+    }
+
+    // 👤 Client Dashboard
+    @GetMapping("/client")
+    public List<Project> getClientProjects() {
+        return projectService.getProjectsForClient();
+    }
+
+
 
 }

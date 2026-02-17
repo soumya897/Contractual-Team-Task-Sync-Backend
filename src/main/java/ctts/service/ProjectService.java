@@ -126,5 +126,38 @@ public class ProjectService {
 
         projectRepository.delete(project);
     }
+    public List<Project> getProjectsForDeveloper() {
+
+        String email = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
+
+        User developer = userRepository.findByEmail(email)
+                .orElseThrow();
+
+        if (developer.getRole() != Role.DEVELOPER) {
+            throw new RuntimeException("Only developer can access this");
+        }
+
+        return projectRepository.findByDevelopersContaining(developer);
+    }
+
+
+    public List<Project> getProjectsForClient() {
+
+        String email = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
+
+        User client = userRepository.findByEmail(email)
+                .orElseThrow();
+
+        if (client.getRole() != Role.CLIENT) {
+            throw new RuntimeException("Only client can access this");
+        }
+
+        return projectRepository.findByClient(client);
+    }
+
 
 }
