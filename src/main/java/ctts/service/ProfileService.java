@@ -1,5 +1,7 @@
 package ctts.service;
 
+import ctts.entity.ProjectStatus;
+import ctts.repository.ProjectRepository;
 import ctts.dto.ProfileResponse;
 import ctts.entity.Role;
 import ctts.entity.User;
@@ -13,7 +15,8 @@ import org.springframework.stereotype.Service;
 
     public class ProfileService {
 
-        private final UserRepository userRepository;
+    private final ProjectRepository projectRepository;
+    private final UserRepository userRepository;
 
         public ProfileResponse getProfile() {
 
@@ -31,7 +34,17 @@ import org.springframework.stereotype.Service;
             long ongoingProjects = 0;
 
             if (user.getRole() == Role.ADMIN) {
+
+                totalProjects = projectRepository.count();
+
+                completedProjects =
+                        projectRepository.countByStatus(ProjectStatus.COMPLETED);
+
+                ongoingProjects =
+                        projectRepository.countByStatus(ProjectStatus.ONGOING);
+
                 totalDevelopers = userRepository.countByRole(Role.DEVELOPER);
+
                 totalClients = userRepository.countByRole(Role.CLIENT);
             }
 

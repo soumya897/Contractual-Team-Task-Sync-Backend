@@ -1,8 +1,10 @@
 package ctts.entity;
+import ctts.entity.ProjectStatus;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
+
 
 import java.util.List;
 
@@ -22,7 +24,9 @@ public class Project {
 
     private String description;
 
-    private String status; // ONGOING / COMPLETED
+    @Enumerated(EnumType.STRING)
+    private ProjectStatus status;  // ONGOING / COMPLETED
+
 
     // 👤 Assigned Client
     @ManyToOne

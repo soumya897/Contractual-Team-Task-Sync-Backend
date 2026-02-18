@@ -2,6 +2,7 @@ package ctts.service;
 
 import ctts.dto.ProjectRequest;
 import ctts.entity.Project;
+import ctts.entity.ProjectStatus;
 import ctts.entity.Role;
 import ctts.entity.User;
 import ctts.repository.ProjectRepository;
@@ -40,7 +41,7 @@ public class ProjectService {
         Project project = Project.builder()
                 .title(request.getTitle())
                 .description(request.getDescription())
-                .status("ONGOING")
+                .status(ProjectStatus.ONGOING)
                 .client(client)
                 .developers(developers)
                 .createdBy(admin)
@@ -94,6 +95,7 @@ public class ProjectService {
         project.setTitle(request.getTitle());
         project.setDescription(request.getDescription());
         project.setStatus(request.getStatus());
+
 
         // Update client
         User client = userRepository.findById(request.getClientId())

@@ -1,4 +1,5 @@
 package ctts.service;
+import ctts.entity.ProjectStatus;
 
 import ctts.dto.AdminDashboardResponse;
 import ctts.entity.*;
@@ -33,7 +34,8 @@ public class AdminService {
     public AdminDashboardResponse getDashboardStats() {
 
         long totalProjects = projectRepository.count();
-        long completedProjects = projectRepository.countByStatus("COMPLETED");
+        long completedProjects =
+                projectRepository.countByStatus(ProjectStatus.COMPLETED);
 
         long totalClients = userRepository.countByRole(Role.CLIENT);
         long totalDevelopers = userRepository.countByRole(Role.DEVELOPER);

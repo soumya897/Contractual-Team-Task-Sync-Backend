@@ -1,6 +1,7 @@
 package ctts.repository;
 
 import ctts.entity.Project;
+import ctts.entity.ProjectStatus;
 import ctts.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -12,5 +13,6 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
 
     List<Project> findByDevelopersContaining(User developer);
 
-    long countByStatus(String status);
+    long countByStatus(ProjectStatus status);
+
 }
