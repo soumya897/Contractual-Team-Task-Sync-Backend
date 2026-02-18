@@ -37,7 +37,8 @@ public class SecurityConfig {
                 "http://localhost:5173",
                 "http://localhost:5174",
                 "http://localhost:5175",
-                "https://contractual-team-task-sync-frontend.vercel.app" // production frontend
+                "https://contractual-team-task-sync-frontend.vercel.app",
+                "https://contractual-team-task-sync-frontend-two.vercel.app" // production frontend
         ));
 
         configuration.setAllowedMethods(List.of(
