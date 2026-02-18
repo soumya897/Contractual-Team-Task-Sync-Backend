@@ -6,6 +6,9 @@ import ctts.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.GetMapping;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -14,6 +17,24 @@ public class TaskService {
     private final TaskRepository taskRepository;
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
+
+
+    // ✅ GET ALL TASKS (Admin only)
+    public List<Task> getAllTasks() {
+
+        String email = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
+
+        User currentUser = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (currentUser.getRole() != Role.ADMIN) {
+            throw new RuntimeException("Only admin can view all tasks");
+        }
+
+        return taskRepository.findAll();
+    }
 
     // ✅ CREATE TASK (Admin + Developer)
     public Task createTask(TaskRequest request) {
@@ -25,23 +46,45 @@ public class TaskService {
         User currentUser = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        Project project = projectRepository.findById(request.getProjectId())
-                .orElseThrow(() -> new RuntimeException("Project not found"));
-
         // ❌ CLIENT cannot create task
         if (currentUser.getRole() == Role.CLIENT) {
             throw new RuntimeException("Client cannot create task");
         }
 
+        // 🔎 Validate Project
+        Project project = projectRepository.findById(request.getProjectId())
+                .orElseThrow(() -> new RuntimeException("Project not found"));
+
+        // 🔎 Validate Developer
         User developer = userRepository.findById(request.getDeveloperId())
                 .orElseThrow(() -> new RuntimeException("Developer not found"));
 
+        // ❌ Ensure assigned user is actually a developer
+        if (developer.getRole() != Role.DEVELOPER) {
+            throw new RuntimeException("Assigned user must be a developer");
+        }
+
+        // ❌ Ensure developer belongs to this project
+        if (!project.getDevelopers().contains(developer)) {
+            throw new RuntimeException("Developer is not assigned to this project");
+        }
+
+        // ❌ Validate required fields
+        if (request.getTitle() == null || request.getTitle().isBlank()) {
+            throw new RuntimeException("Task title is required");
+        }
+
+        if (request.getDescription() == null || request.getDescription().isBlank()) {
+            throw new RuntimeException("Task description is required");
+        }
+
+        // ✅ Build task
         Task task = Task.builder()
                 .title(request.getTitle())
                 .description(request.getDescription())
                 .completed(false)
                 .project(project)
-                .developer(developer) // ✅ FIXED HERE
+                .developer(developer)
                 .build();
 
         return taskRepository.save(task);

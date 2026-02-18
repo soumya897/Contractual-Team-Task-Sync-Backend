@@ -11,4 +11,6 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
     List<Project> findByClient(User client);
 
     List<Project> findByDevelopersContaining(User developer);
+
+    long countByStatus(String status);
 }

@@ -1,10 +1,10 @@
 package ctts.controller;
-
 import ctts.dto.TaskRequest;
 import ctts.entity.Task;
 import ctts.service.TaskService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/tasks")
@@ -46,5 +46,12 @@ public class TaskController {
     ) {
         return taskService.updateTask(id, request);
     }
+
+
+    @GetMapping
+    public List<Task> getAllTasks() {
+        return taskService.getAllTasks();
+    }
+
 
 }
