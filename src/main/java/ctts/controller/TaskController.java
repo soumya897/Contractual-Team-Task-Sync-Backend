@@ -47,10 +47,11 @@ public class TaskController {
         return taskService.updateTask(id, request);
     }
 
+    @GetMapping("/project/{projectId}")
+    public List<Task> getTasksByProject(
+            @PathVariable Long projectId) {
 
-    @GetMapping
-    public List<Task> getAllTasks() {
-        return taskService.getAllTasks();
+        return taskService.getTasksByProject(projectId);
     }
 
 

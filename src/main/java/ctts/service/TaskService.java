@@ -20,7 +20,7 @@ public class TaskService {
 
 
     // ✅ GET ALL TASKS (Admin only)
-    public List<Task> getAllTasks() {
+    public List<Task> getTasksByProject(Long projectId) {
 
         String email = SecurityContextHolder.getContext()
                 .getAuthentication()
@@ -33,8 +33,9 @@ public class TaskService {
             throw new RuntimeException("Only admin can view all tasks");
         }
 
-        return taskRepository.findAll();
+        return taskRepository.findByProjectId(projectId);
     }
+
 
     // ✅ CREATE TASK (Admin + Developer)
     public Task createTask(TaskRequest request) {
