@@ -1,14 +1,18 @@
 package ctts.config;
 
 import ctts.security.JwtAuthenticationFilter;
+import ctts.security.CustomUserDetailsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.*;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.*;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -22,12 +26,28 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final CustomUserDetailsService customUserDetailsService;
 
+    // ✅ Password Encoder
     @Bean
-    public BCryptPasswordEncoder passwordEncoder() {
+    public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
+    // ✅ Authentication Provider (VERY IMPORTANT)
+    @Bean
+    public AuthenticationProvider authenticationProvider() {
+
+        DaoAuthenticationProvider provider =
+                new DaoAuthenticationProvider(customUserDetailsService);
+
+        provider.setPasswordEncoder(passwordEncoder());
+
+        return provider;
+    }
+
+
+    // ✅ CORS
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
 
@@ -38,7 +58,7 @@ public class SecurityConfig {
                 "http://localhost:5174",
                 "http://localhost:5175",
                 "https://contractual-team-task-sync-frontend.vercel.app",
-                "https://contractual-team-task-sync-frontend-two.vercel.app" // production frontend
+                "https://contractual-team-task-sync-frontend-two.vercel.app"
         ));
 
         configuration.setAllowedMethods(List.of(
@@ -56,6 +76,7 @@ public class SecurityConfig {
         return source;
     }
 
+    // ✅ Security Filter Chain
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
@@ -65,6 +86,10 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
+
+                // 🔥 VERY IMPORTANT LINE
+                .authenticationProvider(authenticationProvider())
+
                 .authorizeHttpRequests(auth -> auth
 
                         // 🔓 Public APIs
@@ -79,13 +104,12 @@ public class SecurityConfig {
                         // 🔐 Developer APIs
                         .requestMatchers("/api/developer/**").hasRole("DEVELOPER")
 
-                        // 🔐 Project APIs (Any logged-in user)
+                        // 🔐 Project APIs
                         .requestMatchers("/api/projects/**").authenticated()
 
-                        // 🔐 Task APIs (Any logged-in user)
+                        // 🔐 Task APIs
                         .requestMatchers("/api/tasks/**").authenticated()
 
-                        // 🔐 Everything else
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

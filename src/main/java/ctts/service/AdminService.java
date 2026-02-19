@@ -1,5 +1,6 @@
 package ctts.service;
 import ctts.entity.ProjectStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import ctts.dto.AdminDashboardResponse;
 import ctts.entity.*;
@@ -15,6 +16,7 @@ public class AdminService {
 
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     // ✅ Get all projects
     public List<Project> getAllProjects() {
@@ -70,7 +72,17 @@ public class AdminService {
     }
 
     public User createDeveloper(User request) {
+
         request.setRole(Role.DEVELOPER);
+
+        if (request.getPassword() == null || request.getPassword().isBlank()) {
+            throw new RuntimeException("Password is required");
+        }
+
+        request.setPassword(
+                passwordEncoder.encode(request.getPassword())
+        );
+
         return userRepository.save(request);
     }
 
