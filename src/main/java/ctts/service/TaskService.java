@@ -17,6 +17,7 @@ public class TaskService {
     private final TaskRepository taskRepository;
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
 
     // ✅ GET ALL TASKS (Admin only)
@@ -66,30 +67,24 @@ public class TaskService {
         User currentUser = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // ❌ CLIENT cannot create task
         if (currentUser.getRole() == Role.CLIENT) {
             throw new RuntimeException("Client cannot create task");
         }
 
-        // 🔎 Validate Project
         Project project = projectRepository.findById(request.getProjectId())
                 .orElseThrow(() -> new RuntimeException("Project not found"));
 
-        // 🔎 Validate Developer
         User developer = userRepository.findById(request.getDeveloperId())
                 .orElseThrow(() -> new RuntimeException("Developer not found"));
 
-        // ❌ Ensure assigned user is actually a developer
         if (developer.getRole() != Role.DEVELOPER) {
             throw new RuntimeException("Assigned user must be a developer");
         }
 
-        // ❌ Ensure developer belongs to this project
         if (!project.getDevelopers().contains(developer)) {
             throw new RuntimeException("Developer is not assigned to this project");
         }
 
-        // ❌ Validate required fields
         if (request.getTitle() == null || request.getTitle().isBlank()) {
             throw new RuntimeException("Task title is required");
         }
@@ -98,7 +93,6 @@ public class TaskService {
             throw new RuntimeException("Task description is required");
         }
 
-        // ✅ Build task
         Task task = Task.builder()
                 .title(request.getTitle())
                 .description(request.getDescription())
@@ -107,7 +101,15 @@ public class TaskService {
                 .developer(developer)
                 .build();
 
-        return taskRepository.save(task);
+        Task savedTask = taskRepository.save(task);
+
+        // 🔔 Notify developer
+        notificationService.createNotification(
+                developer,
+                "You have been assigned a new task: " + savedTask.getTitle()
+        );
+
+        return savedTask;
     }
 
     // ✅ DELETE TASK
@@ -153,20 +155,30 @@ public class TaskService {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new RuntimeException("Task not found"));
 
-        // ❌ Only developer can mark complete
         if (currentUser.getRole() != Role.DEVELOPER) {
             throw new RuntimeException("Only developer can mark complete");
         }
 
-        // ❌ Developer can only mark their own task
         if (!task.getDeveloper().getId().equals(currentUser.getId())) {
             throw new RuntimeException("You can only update your own tasks");
         }
 
         task.setCompleted(true);
 
-        return taskRepository.save(task);
+        Task updatedTask = taskRepository.save(task);
+
+        // 🔔 Notify Admin who created project
+        User admin = task.getProject().getCreatedBy();
+
+        notificationService.createNotification(
+                admin,
+                "Task completed: " + task.getTitle() +
+                        " by " + currentUser.getName()
+        );
+
+        return updatedTask;
     }
+
     // ✅ PROJECT COMPLETION %
     public double getProjectCompletion(Long projectId) {
 
@@ -197,18 +209,18 @@ public class TaskService {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new RuntimeException("Task not found"));
 
-        // ❌ Client cannot update
         if (currentUser.getRole() == Role.CLIENT) {
             throw new RuntimeException("Client cannot update task");
         }
 
-        // Developer can update only own task
         if (currentUser.getRole() == Role.DEVELOPER &&
                 !task.getDeveloper().getId().equals(currentUser.getId())) {
             throw new RuntimeException("You can update only your own tasks");
         }
 
-        // Update fields if present
+        // Store old developer
+        User oldDeveloper = task.getDeveloper();
+
         if (request.getTitle() != null)
             task.setTitle(request.getTitle());
 
@@ -217,6 +229,22 @@ public class TaskService {
 
         if (request.getCompleted() != null)
             task.setCompleted(request.getCompleted());
+
+        // If developer changed → notify new developer
+        if (request.getDeveloperId() != null) {
+
+            User newDeveloper = userRepository.findById(request.getDeveloperId())
+                    .orElseThrow(() -> new RuntimeException("Developer not found"));
+
+            task.setDeveloper(newDeveloper);
+
+            if (!newDeveloper.getId().equals(oldDeveloper.getId())) {
+                notificationService.createNotification(
+                        newDeveloper,
+                        "You have been assigned a new task: " + task.getTitle()
+                );
+            }
+        }
 
         return taskRepository.save(task);
     }
