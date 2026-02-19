@@ -6,6 +6,7 @@ import ctts.entity.*;
 import ctts.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.List;
 
@@ -15,6 +16,8 @@ public class AdminService {
 
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+
 
     // ✅ Get all projects
     public List<Project> getAllProjects() {
@@ -49,7 +52,17 @@ public class AdminService {
     }
 
     public User createClient(User request) {
+
         request.setRole(Role.CLIENT);
+
+        if (request.getPassword() == null || request.getPassword().isBlank()) {
+            throw new RuntimeException("Password is required");
+        }
+
+        request.setPassword(
+                passwordEncoder.encode(request.getPassword())
+        );
+
         return userRepository.save(request);
     }
 
@@ -70,7 +83,18 @@ public class AdminService {
     }
 
     public User createDeveloper(User request) {
+
         request.setRole(Role.DEVELOPER);
+
+        if (request.getPassword() == null || request.getPassword().isBlank()) {
+            throw new RuntimeException("Password is required");
+        }
+
+        // ✅ Encode password before saving
+        request.setPassword(
+                passwordEncoder.encode(request.getPassword())
+        );
+
         return userRepository.save(request);
     }
 
