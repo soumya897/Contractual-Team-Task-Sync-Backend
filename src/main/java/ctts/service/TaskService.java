@@ -29,12 +29,31 @@ public class TaskService {
         User currentUser = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        if (currentUser.getRole() != Role.ADMIN) {
-            throw new RuntimeException("Only admin can view all tasks");
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new RuntimeException("Project not found"));
+
+        // ADMIN → can view everything
+        if (currentUser.getRole() == Role.ADMIN) {
+            return taskRepository.findByProject(project);
         }
 
-        return taskRepository.findByProjectId(projectId);
+        // CLIENT → can view only their own project
+        if (currentUser.getRole() == Role.CLIENT &&
+                project.getClient().getId().equals(currentUser.getId())) {
+
+            return taskRepository.findByProject(project);
+        }
+
+        // DEVELOPER → only if assigned to project
+        if (currentUser.getRole() == Role.DEVELOPER &&
+                project.getDevelopers().contains(currentUser)) {
+
+            return taskRepository.findByProject(project);
+        }
+
+        throw new RuntimeException("Not authorized to view tasks of this project");
     }
+
 
 
     // ✅ CREATE TASK (Admin + Developer)
