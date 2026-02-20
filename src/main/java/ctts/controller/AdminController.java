@@ -28,23 +28,24 @@ public class AdminController {
         return "Admin access granted ✅";
     }
 
-    // 🔥 Get all projects
+    // 🔥 Get all projects (WITH SEARCH)
     @GetMapping("/projects")
-    public List<Project> getAllProjects() {
-        return adminService.getAllProjects();
+    public List<Project> getAllProjects(@RequestParam(required = false) String search) {
+        return adminService.getAllProjects(search);
     }
 
-    // 🔥 Get all clients
+    // 🔥 Get all clients (WITH SEARCH)
     @GetMapping("/clients")
-    public List<User> getAllClients() {
-        return adminService.getAllClients();
+    public List<User> getAllClients(@RequestParam(required = false) String search) {
+        return adminService.getAllClients(search);
     }
 
-    // 🔥 Get all developers
+    // 🔥 Get all developers (WITH SEARCH)
     @GetMapping("/developers")
-    public List<User> getAllDevelopers() {
-        return adminService.getAllDevelopers();
+    public List<User> getAllDevelopers(@RequestParam(required = false) String search) {
+        return adminService.getAllDevelopers(search);
     }
+
     @GetMapping("/dashboard")
     public AdminDashboardResponse getDashboard() {
         return adminService.getDashboardStats();

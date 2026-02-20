@@ -18,19 +18,28 @@ public class AdminService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    // ✅ Get all projects
-    public List<Project> getAllProjects() {
-        return projectRepository.findAll();
+    // 🔥 Get all projects (WITH SEARCH)
+    public List<Project> getAllProjects(String search) {
+        if (search == null || search.trim().isEmpty()) {
+            return projectRepository.findAll();
+        }
+        return projectRepository.searchProjects(search);
     }
 
-    // ✅ Get all clients
-    public List<User> getAllClients() {
-        return userRepository.findByRole(Role.CLIENT);
+    // 🔥 Get all clients (WITH SEARCH)
+    public List<User> getAllClients(String search) {
+        if (search == null || search.trim().isEmpty()) {
+            return userRepository.findByRole(Role.CLIENT);
+        }
+        return userRepository.searchUsersByRole(Role.CLIENT, search);
     }
 
-    // ✅ Get all developers
-    public List<User> getAllDevelopers() {
-        return userRepository.findByRole(Role.DEVELOPER);
+    // 🔥 Get all developers (WITH SEARCH)
+    public List<User> getAllDevelopers(String search) {
+        if (search == null || search.trim().isEmpty()) {
+            return userRepository.findByRole(Role.DEVELOPER);
+        }
+        return userRepository.searchUsersByRole(Role.DEVELOPER, search);
     }
 
     public AdminDashboardResponse getDashboardStats() {
