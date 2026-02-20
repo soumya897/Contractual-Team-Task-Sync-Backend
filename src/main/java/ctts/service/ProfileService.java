@@ -8,6 +8,7 @@ import ctts.entity.User;
 import ctts.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Service;
 
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
         public ProfileResponse getProfile() {
 
@@ -78,5 +80,26 @@ import org.springframework.stereotype.Service;
 
             return getProfile();
         }
+
+    public String changePassword(String oldPassword, String newPassword) {
+        // 1. Get the currently logged-in user
+        String email = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // 2. Verify that the old password matches what is currently in the database
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+            throw new RuntimeException("Incorrect old password");
+        }
+
+        // 3. Encrypt the new password before saving it
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+
+        return "Password changed successfully!";
     }
+}
 
