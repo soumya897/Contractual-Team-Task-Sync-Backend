@@ -1,11 +1,14 @@
 package ctts.controller;
 
-
+import ctts.entity.Notification;
 import ctts.dto.AdminDashboardResponse;
 import ctts.entity.Project;
 import ctts.entity.User;
+import ctts.repository.UserRepository;
 import ctts.service.AdminService;
+import ctts.service.NotificationService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -16,6 +19,8 @@ import java.util.List;
 public class AdminController {
 
     private final AdminService adminService;
+    private final NotificationService notificationService;
+    private final UserRepository userRepository;
 
     // ✅ Test API
     @GetMapping("/test")
@@ -76,6 +81,39 @@ public class AdminController {
     public String deleteDeveloper(@PathVariable Long id) {
         adminService.deleteDeveloper(id);
         return "Developer deleted successfully";
+    }
+
+    // 🔔 Get all notifications for Admin
+    @GetMapping("/notifications")
+    public List<Notification> getNotifications() {
+        String email = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
+
+        User admin = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Admin not found"));
+
+        return notificationService.getUserNotifications(admin);
+    }
+
+    // 🔔 Get unread notification count for Admin
+    @GetMapping("/notifications/unread-count")
+    public long getUnreadCount() {
+        String email = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
+
+        User admin = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Admin not found"));
+
+        return notificationService.getUnreadCount(admin);
+    }
+
+    // 🔔 Mark notification as read
+    @PutMapping("/notifications/{id}/read")
+    public String markAsRead(@PathVariable Long id) {
+        notificationService.markAsRead(id);
+        return "Notification marked as read";
     }
 
 

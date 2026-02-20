@@ -2,6 +2,7 @@ package ctts.controller;
 
 
 import ctts.dto.ProfileResponse;
+import ctts.dto.ProfileUpdateRequest;
 import ctts.service.ProfileService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -27,10 +28,10 @@ public class ProfileController {
     public ProfileResponse clientProfile() {
         return profileService.getProfile();
     }
+
     @PutMapping("/profile/update")
-    public ProfileResponse updateProfile(@RequestParam String name,
-                                         @RequestParam String phone) {
-        return profileService.updateProfile(name, phone);
+    public ProfileResponse updateProfile(@RequestBody ProfileUpdateRequest request) {
+        return profileService.updateProfile(request.getName(), request.getPhone());
     }
 
 }

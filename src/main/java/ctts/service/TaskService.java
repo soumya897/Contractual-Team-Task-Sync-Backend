@@ -6,7 +6,6 @@ import ctts.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.GetMapping;
 
 import java.util.List;
 
@@ -103,11 +102,21 @@ public class TaskService {
 
         Task savedTask = taskRepository.save(task);
 
-        // 🔔 Notify developer
-        notificationService.createNotification(
-                developer,
-                "You have been assigned a new task: " + savedTask.getTitle()
-        );
+        // 🔔 CLEAR NOTIFICATION: Notify developer exactly who assigned the task and for which project
+        if (!currentUser.getId().equals(developer.getId())) {
+            notificationService.createNotification(
+                    developer,
+                    currentUser.getName() + " assigned you the task: '" + savedTask.getTitle() + "' in project '" + project.getTitle() + "'"
+            );
+        }
+
+        // 🔔 Notify Admin if Developer creates a task
+        if (currentUser.getRole() == Role.DEVELOPER) {
+            notificationService.createNotification(
+                    project.getCreatedBy(),
+                    "Developer " + currentUser.getName() + " created a new task '" + savedTask.getTitle() + "' in project '" + project.getTitle() + "'"
+            );
+        }
 
         return savedTask;
     }
@@ -127,6 +136,11 @@ public class TaskService {
 
         // ✅ ADMIN can delete any task
         if (currentUser.getRole() == Role.ADMIN) {
+            // 🔔 Notify Developer that Admin deleted their task
+            notificationService.createNotification(
+                    task.getDeveloper(),
+                    "Admin " + currentUser.getName() + " deleted your task '" + task.getTitle() + "' from project '" + task.getProject().getTitle() + "'"
+            );
             taskRepository.delete(task);
             return;
         }
@@ -135,6 +149,11 @@ public class TaskService {
         if (currentUser.getRole() == Role.DEVELOPER &&
                 task.getDeveloper().getId().equals(currentUser.getId())) {
 
+            // 🔔 Notify Admin that Developer deleted a task
+            notificationService.createNotification(
+                    task.getProject().getCreatedBy(),
+                    "Developer " + currentUser.getName() + " deleted the task '" + task.getTitle() + "' from project '" + task.getProject().getTitle() + "'"
+            );
             taskRepository.delete(task);
             return;
         }
@@ -167,13 +186,11 @@ public class TaskService {
 
         Task updatedTask = taskRepository.save(task);
 
-        // 🔔 Notify Admin who created project
+        // 🔔 CLEAR NOTIFICATION: Tell admin exactly what project the completed task belongs to
         User admin = task.getProject().getCreatedBy();
-
         notificationService.createNotification(
                 admin,
-                "Task completed: " + task.getTitle() +
-                        " by " + currentUser.getName()
+                "Developer " + currentUser.getName() + " completed task '" + task.getTitle() + "' in project '" + task.getProject().getTitle() + "'"
         );
 
         return updatedTask;
@@ -230,6 +247,8 @@ public class TaskService {
         if (request.getCompleted() != null)
             task.setCompleted(request.getCompleted());
 
+        boolean isReassigned = false;
+
         // If developer changed → notify new developer
         if (request.getDeveloperId() != null) {
 
@@ -239,14 +258,33 @@ public class TaskService {
             task.setDeveloper(newDeveloper);
 
             if (!newDeveloper.getId().equals(oldDeveloper.getId())) {
+                isReassigned = true;
+                // 🔔 CLEAR NOTIFICATION: Reassignment context
                 notificationService.createNotification(
                         newDeveloper,
-                        "You have been assigned a new task: " + task.getTitle()
+                        currentUser.getName() + " reassigned the task '" + task.getTitle() + "' to you in project '" + task.getProject().getTitle() + "'"
                 );
             }
         }
 
-        return taskRepository.save(task);
+        Task savedTask = taskRepository.save(task);
+
+        // 🔔 General Update Notifications (if it wasn't just a reassignment)
+        if (!isReassigned) {
+            if (currentUser.getRole() == Role.DEVELOPER) {
+                notificationService.createNotification(
+                        task.getProject().getCreatedBy(),
+                        "Developer " + currentUser.getName() + " updated task '" + task.getTitle() + "' in project '" + task.getProject().getTitle() + "'"
+                );
+            } else if (currentUser.getRole() == Role.ADMIN && !currentUser.getId().equals(task.getDeveloper().getId())) {
+                notificationService.createNotification(
+                        task.getDeveloper(),
+                        "Admin " + currentUser.getName() + " updated your task '" + task.getTitle() + "' in project '" + task.getProject().getTitle() + "'"
+                );
+            }
+        }
+
+        return savedTask;
     }
 
 }

@@ -53,11 +53,11 @@ public class ProjectService {
 
         Project savedProject = projectRepository.save(project);
 
-        // 🔔 CREATE NOTIFICATION FOR EACH DEVELOPER
+        // 🔔 CLEAR NOTIFICATION: Who assigned what project
         for (User dev : developers) {
             notificationService.createNotification(
                     dev,
-                    "You have been assigned to project: " + savedProject.getTitle()
+                    "Admin " + admin.getName() + " assigned you to a new project: '" + savedProject.getTitle() + "'"
             );
         }
 
@@ -102,12 +102,12 @@ public class ProjectService {
 
         Project updatedProject = projectRepository.save(project);
 
-        // 🔔 Notify ONLY newly added developers
+        // 🔔 CLEAR NOTIFICATION: Notify ONLY newly added developers
         for (User dev : newDevelopers) {
             if (!oldDevelopers.contains(dev)) {
                 notificationService.createNotification(
                         dev,
-                        "You have been assigned to project: " + updatedProject.getTitle()
+                        "Admin " + currentUser.getName() + " added you to the project: '" + updatedProject.getTitle() + "'"
                 );
             }
         }
