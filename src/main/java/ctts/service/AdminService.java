@@ -61,6 +61,12 @@ public class AdminService {
 
     public User createClient(User request) {
         request.setRole(Role.CLIENT);
+        if (request.getPassword() == null || request.getPassword().isBlank()) {
+            throw new RuntimeException("Password is required");
+        }
+        request.setPassword(
+                passwordEncoder.encode(request.getPassword())
+        );
         return userRepository.save(request);
     }
 
