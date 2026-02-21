@@ -21,6 +21,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtUtil jwtUtil;
     private final CustomUserDetailsService userDetailsService;
 
+    // ✅ Cleanly skip the filter for auth routes and CORS OPTIONS requests
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        String path = request.getRequestURI();
+        return path.startsWith("/api/auth") || request.getMethod().equals("OPTIONS");
+    }
+
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
@@ -28,38 +35,34 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
-        String path = request.getServletPath();
-
-        // ✅ Skip login & register endpoints
-        if (path.startsWith("/api/auth")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
         String authHeader = request.getHeader("Authorization");
 
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
-
             String token = authHeader.substring(7);
 
-            if (jwtUtil.validateToken(token)) {
+            try {
+                // 🔥 Try-catch prevents expired tokens from triggering a 403 on the /error route
+                if (jwtUtil.validateToken(token)) {
 
-                String email = jwtUtil.extractEmail(token);
+                    String email = jwtUtil.extractEmail(token);
+                    var userDetails = userDetailsService.loadUserByUsername(email);
 
-                var userDetails = userDetailsService.loadUserByUsername(email);
+                    var authToken = new UsernamePasswordAuthenticationToken(
+                            userDetails,
+                            null,
+                            userDetails.getAuthorities()
+                    );
 
-                var authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails,
-                        null,
-                        userDetails.getAuthorities()
-                );
+                    authToken.setDetails(
+                            new WebAuthenticationDetailsSource().buildDetails(request)
+                    );
 
-                authToken.setDetails(
-                        new WebAuthenticationDetailsSource()
-                                .buildDetails(request)
-                );
-
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                }
+            } catch (Exception e) {
+                // Log the expiration/signature error, but don't crash the filter.
+                // Spring Security will naturally reject the empty context with a 401 Unauthorized.
+                System.out.println("JWT Verification failed: " + e.getMessage());
             }
         }
 

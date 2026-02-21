@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.*;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -81,13 +82,12 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http
-                .cors(cors -> {})
+                // 🔥 Fix 1: Explicitly wire the CORS configuration bean
+                .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
-
-                // 🔥 VERY IMPORTANT LINE
                 .authenticationProvider(authenticationProvider())
 
                 .authorizeHttpRequests(auth -> auth
@@ -95,14 +95,15 @@ public class SecurityConfig {
                         // 🔓 Public APIs
                         .requestMatchers("/api/auth/**").permitAll()
 
+                        // 🔥 Fix 2: Use hasAuthority instead of hasRole for exact matching
                         // 🔐 Admin APIs
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/admin/**").hasAuthority("ADMIN")
 
                         // 🔐 Client APIs
-                        .requestMatchers("/api/client/**").hasRole("CLIENT")
+                        .requestMatchers("/api/client/**").hasAuthority("CLIENT")
 
                         // 🔐 Developer APIs
-                        .requestMatchers("/api/developer/**").hasRole("DEVELOPER")
+                        .requestMatchers("/api/developer/**").hasAuthority("DEVELOPER")
 
                         // 🔐 Project APIs
                         .requestMatchers("/api/projects/**").authenticated()
