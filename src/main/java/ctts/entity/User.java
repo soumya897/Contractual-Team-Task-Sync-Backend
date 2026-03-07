@@ -33,4 +33,11 @@ public class User {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
+
+    // 🔥 ADD THIS: Links a client/developer to the admin who created them
+    @ManyToOne
+    @JoinColumn(name = "created_by_admin_id")
+    @JsonIgnore
+    private User createdByAdmin;
+
 }

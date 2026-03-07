@@ -21,7 +21,6 @@ import org.springframework.stereotype.Service;
     private final PasswordEncoder passwordEncoder;
 
         public ProfileResponse getProfile() {
-
             String email = SecurityContextHolder.getContext()
                     .getAuthentication()
                     .getName();
@@ -36,18 +35,11 @@ import org.springframework.stereotype.Service;
             long ongoingProjects = 0;
 
             if (user.getRole() == Role.ADMIN) {
-
-                totalProjects = projectRepository.count();
-
-                completedProjects =
-                        projectRepository.countByStatus(ProjectStatus.COMPLETED);
-
-                ongoingProjects =
-                        projectRepository.countByStatus(ProjectStatus.ONGOING);
-
-                totalDevelopers = userRepository.countByRole(Role.DEVELOPER);
-
-                totalClients = userRepository.countByRole(Role.CLIENT);
+                totalProjects = projectRepository.countByCreatedBy(user);
+                completedProjects = projectRepository.countByStatusAndCreatedBy(ProjectStatus.COMPLETED, user);
+                ongoingProjects = projectRepository.countByStatusAndCreatedBy(ProjectStatus.ONGOING, user);
+                totalDevelopers = userRepository.countByRoleAndCreatedByAdmin(Role.DEVELOPER, user);
+                totalClients = userRepository.countByRoleAndCreatedByAdmin(Role.CLIENT, user);
             }
 
             return ProfileResponse.builder()

@@ -21,4 +21,16 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("SELECT u FROM User u WHERE u.role = :role AND (LOWER(u.name) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%')))")
     List<User> searchUsersByRole(@Param("role") Role role, @Param("search") String search);
+
+
+
+    // 🔥 New methods to filter by the Admin
+    long countByRoleAndCreatedByAdmin(Role role, User admin);
+
+    List<User> findByRoleAndCreatedByAdmin(Role role, User admin);
+
+    @Query("SELECT u FROM User u WHERE u.role = :role AND u.createdByAdmin = :admin AND (LOWER(u.name) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%')))")
+    List<User> searchUsersByRoleAndAdmin(@Param("role") Role role, @Param("admin") User admin, @Param("search") String search);
+
+
 }

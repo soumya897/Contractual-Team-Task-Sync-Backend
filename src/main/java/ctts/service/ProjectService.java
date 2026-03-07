@@ -144,7 +144,7 @@ public class ProjectService {
         User user = userRepository.findByEmail(email).orElseThrow();
 
         if (user.getRole() == Role.ADMIN) {
-            return projectRepository.findAll();
+            return projectRepository.findByCreatedBy(user);
         }
 
         if (user.getRole() == Role.CLIENT) {

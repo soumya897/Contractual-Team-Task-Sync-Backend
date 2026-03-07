@@ -18,55 +18,61 @@ public class AdminService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    // 🔥 Get all projects (WITH SEARCH)
+
+
+    private User getLoggedInAdmin() {
+        String email = org.springframework.security.core.context.SecurityContextHolder.getContext()
+                .getAuthentication().getName();
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Admin not found"));
+    }
+
     public List<Project> getAllProjects(String search) {
+        User admin = getLoggedInAdmin();
         if (search == null || search.trim().isEmpty()) {
-            return projectRepository.findAll();
+            return projectRepository.findByCreatedBy(admin); // 🔥 Filtered by admin
         }
-        return projectRepository.searchProjects(search);
+        return projectRepository.searchProjectsByAdmin(admin, search); // 🔥 Filtered by admin
     }
 
-    // 🔥 Get all clients (WITH SEARCH)
     public List<User> getAllClients(String search) {
+        User admin = getLoggedInAdmin();
         if (search == null || search.trim().isEmpty()) {
-            return userRepository.findByRole(Role.CLIENT);
+            return userRepository.findByRoleAndCreatedByAdmin(Role.CLIENT, admin); // 🔥 Filtered by admin
         }
-        return userRepository.searchUsersByRole(Role.CLIENT, search);
+        return userRepository.searchUsersByRoleAndAdmin(Role.CLIENT, admin, search); // 🔥 Filtered by admin
     }
 
-    // 🔥 Get all developers (WITH SEARCH)
     public List<User> getAllDevelopers(String search) {
+        User admin = getLoggedInAdmin();
         if (search == null || search.trim().isEmpty()) {
-            return userRepository.findByRole(Role.DEVELOPER);
+            return userRepository.findByRoleAndCreatedByAdmin(Role.DEVELOPER, admin); // 🔥 Filtered by admin
         }
-        return userRepository.searchUsersByRole(Role.DEVELOPER, search);
+        return userRepository.searchUsersByRoleAndAdmin(Role.DEVELOPER, admin, search); // 🔥 Filtered by admin
     }
 
     public AdminDashboardResponse getDashboardStats() {
+        User admin = getLoggedInAdmin();
 
-        long totalProjects = projectRepository.count();
-        long completedProjects =
-                projectRepository.countByStatus(ProjectStatus.COMPLETED);
-
-        long totalClients = userRepository.countByRole(Role.CLIENT);
-        long totalDevelopers = userRepository.countByRole(Role.DEVELOPER);
+        // 🔥 Now counts ONLY stats for this specific admin
+        long totalProjects = projectRepository.countByCreatedBy(admin);
+        long completedProjects = projectRepository.countByStatusAndCreatedBy(ProjectStatus.COMPLETED, admin);
+        long totalClients = userRepository.countByRoleAndCreatedByAdmin(Role.CLIENT, admin);
+        long totalDevelopers = userRepository.countByRoleAndCreatedByAdmin(Role.DEVELOPER, admin);
 
         return new AdminDashboardResponse(
-                totalProjects,
-                completedProjects,
-                totalClients,
-                totalDevelopers
+                totalProjects, completedProjects, totalClients, totalDevelopers
         );
     }
 
     public User createClient(User request) {
         request.setRole(Role.CLIENT);
+        request.setCreatedByAdmin(getLoggedInAdmin()); // 🔥 Link client to this admin
+
         if (request.getPassword() == null || request.getPassword().isBlank()) {
             throw new RuntimeException("Password is required");
         }
-        request.setPassword(
-                passwordEncoder.encode(request.getPassword())
-        );
+        request.setPassword(passwordEncoder.encode(request.getPassword()));
         return userRepository.save(request);
     }
 
@@ -86,18 +92,15 @@ public class AdminService {
         userRepository.deleteById(id);
     }
 
-    public User createDeveloper(User request) {
 
+    public User createDeveloper(User request) {
         request.setRole(Role.DEVELOPER);
+        request.setCreatedByAdmin(getLoggedInAdmin()); // 🔥 Link developer to this admin
 
         if (request.getPassword() == null || request.getPassword().isBlank()) {
             throw new RuntimeException("Password is required");
         }
-
-        request.setPassword(
-                passwordEncoder.encode(request.getPassword())
-        );
-
+        request.setPassword(passwordEncoder.encode(request.getPassword()));
         return userRepository.save(request);
     }
 
@@ -116,6 +119,10 @@ public class AdminService {
     public void deleteDeveloper(Long id) {
         userRepository.deleteById(id);
     }
+
+
+
+
 
 
 

@@ -20,4 +20,14 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
     @Query("SELECT p FROM Project p WHERE LOWER(p.title) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(p.description) LIKE LOWER(CONCAT('%', :search, '%'))")
     List<Project> searchProjects(@Param("search") String search);
 
+
+    // 🔥 New methods to filter by the Admin
+    long countByCreatedBy(User admin);
+
+    long countByStatusAndCreatedBy(ProjectStatus status, User admin);
+
+    List<Project> findByCreatedBy(User admin);
+
+    @Query("SELECT p FROM Project p WHERE p.createdBy = :admin AND (LOWER(p.title) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(p.description) LIKE LOWER(CONCAT('%', :search, '%')))")
+    List<Project> searchProjectsByAdmin(@Param("admin") User admin, @Param("search") String search);
 }
