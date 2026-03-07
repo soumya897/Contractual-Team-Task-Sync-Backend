@@ -13,37 +13,31 @@ public class TaskController {
 
     private final TaskService taskService;
 
-    // ✅ Create Task (Admin only)
+    // ✅ Create Task (Project Manager only)
     @PostMapping
     public Task createTask(@RequestBody TaskRequest request) {
         return taskService.createTask(request);
     }
 
-    // ✅ Delete Task (Admin only)
+    // ✅ Delete Task (Project Manager only)
     @DeleteMapping("/{id}")
     public String deleteTask(@PathVariable Long id) {
         taskService.deleteTask(id);
         return "Task deleted successfully";
     }
 
-    // ✅ Mark Complete (Developer)
     @PutMapping("/{id}/complete")
     public Task markComplete(@PathVariable Long id) {
         return taskService.markComplete(id);
     }
 
-    // ✅ PROJECT COMPLETION %
     @GetMapping("/project/{projectId}/completion")
     public double getCompletion(@PathVariable Long projectId) {
         return taskService.getProjectCompletion(projectId);
     }
 
-    // ✅ Update Task
     @PutMapping("/{id}")
-    public Task updateTask(
-            @PathVariable Long id,
-            @RequestBody TaskRequest request
-    ) {
+    public Task updateTask(@PathVariable Long id, @RequestBody TaskRequest request) {
         return taskService.updateTask(id, request);
     }
 
@@ -51,6 +45,4 @@ public class TaskController {
     public List<Task> getTasksByProject(@PathVariable Long projectId) {
         return taskService.getTasksByProject(projectId);
     }
-
-
 }

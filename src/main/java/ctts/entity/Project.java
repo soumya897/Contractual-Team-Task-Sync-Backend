@@ -5,7 +5,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
-
 import java.util.List;
 
 @Entity
@@ -27,7 +26,6 @@ public class Project {
     @Enumerated(EnumType.STRING)
     private ProjectStatus status;  // ONGOING / COMPLETED
 
-
     // 👤 Assigned Client
     @ManyToOne
     @JoinColumn(name = "client_id")
@@ -42,12 +40,11 @@ public class Project {
     )
     private List<User> developers;
 
-    // 👨‍💼 Created By Admin
+    // 👨‍💼 Created By Project Manager
     @ManyToOne
-    @JoinColumn(name = "admin_id")
+    @JoinColumn(name = "pm_id")
     private User createdBy;
 
-    // 🔥 ADD THIS BELOW
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL)
     @JsonIgnore
     private List<Task> tasks;

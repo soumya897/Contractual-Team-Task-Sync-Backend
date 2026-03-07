@@ -2,7 +2,7 @@ package ctts.service;
 import ctts.entity.ProjectStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import ctts.dto.AdminDashboardResponse;
+import ctts.dto.ProjectManagerDashboardResponse;
 import ctts.entity.*;
 import ctts.repository.*;
 import lombok.RequiredArgsConstructor;
@@ -12,62 +12,59 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class AdminService {
+public class ProjectManagerService {
 
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-
-
-    private User getLoggedInAdmin() {
+    private User getLoggedInProjectManager() {
         String email = org.springframework.security.core.context.SecurityContextHolder.getContext()
                 .getAuthentication().getName();
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Admin not found"));
+                .orElseThrow(() -> new RuntimeException("Project Manager not found"));
     }
 
     public List<Project> getAllProjects(String search) {
-        User admin = getLoggedInAdmin();
+        User pm = getLoggedInProjectManager();
         if (search == null || search.trim().isEmpty()) {
-            return projectRepository.findByCreatedBy(admin); // 🔥 Filtered by admin
+            return projectRepository.findByCreatedBy(pm);
         }
-        return projectRepository.searchProjectsByAdmin(admin, search); // 🔥 Filtered by admin
+        return projectRepository.searchProjectsByProjectManager(pm, search);
     }
 
     public List<User> getAllClients(String search) {
-        User admin = getLoggedInAdmin();
+        User pm = getLoggedInProjectManager();
         if (search == null || search.trim().isEmpty()) {
-            return userRepository.findByRoleAndCreatedByAdmin(Role.CLIENT, admin); // 🔥 Filtered by admin
+            return userRepository.findByRoleAndCreatedByProjectManager(Role.CLIENT, pm);
         }
-        return userRepository.searchUsersByRoleAndAdmin(Role.CLIENT, admin, search); // 🔥 Filtered by admin
+        return userRepository.searchUsersByRoleAndProjectManager(Role.CLIENT, pm, search);
     }
 
     public List<User> getAllDevelopers(String search) {
-        User admin = getLoggedInAdmin();
+        User pm = getLoggedInProjectManager();
         if (search == null || search.trim().isEmpty()) {
-            return userRepository.findByRoleAndCreatedByAdmin(Role.DEVELOPER, admin); // 🔥 Filtered by admin
+            return userRepository.findByRoleAndCreatedByProjectManager(Role.DEVELOPER, pm);
         }
-        return userRepository.searchUsersByRoleAndAdmin(Role.DEVELOPER, admin, search); // 🔥 Filtered by admin
+        return userRepository.searchUsersByRoleAndProjectManager(Role.DEVELOPER, pm, search);
     }
 
-    public AdminDashboardResponse getDashboardStats() {
-        User admin = getLoggedInAdmin();
+    public ProjectManagerDashboardResponse getDashboardStats() {
+        User pm = getLoggedInProjectManager();
 
-        // 🔥 Now counts ONLY stats for this specific admin
-        long totalProjects = projectRepository.countByCreatedBy(admin);
-        long completedProjects = projectRepository.countByStatusAndCreatedBy(ProjectStatus.COMPLETED, admin);
-        long totalClients = userRepository.countByRoleAndCreatedByAdmin(Role.CLIENT, admin);
-        long totalDevelopers = userRepository.countByRoleAndCreatedByAdmin(Role.DEVELOPER, admin);
+        long totalProjects = projectRepository.countByCreatedBy(pm);
+        long completedProjects = projectRepository.countByStatusAndCreatedBy(ProjectStatus.COMPLETED, pm);
+        long totalClients = userRepository.countByRoleAndCreatedByProjectManager(Role.CLIENT, pm);
+        long totalDevelopers = userRepository.countByRoleAndCreatedByProjectManager(Role.DEVELOPER, pm);
 
-        return new AdminDashboardResponse(
+        return new ProjectManagerDashboardResponse(
                 totalProjects, completedProjects, totalClients, totalDevelopers
         );
     }
 
     public User createClient(User request) {
         request.setRole(Role.CLIENT);
-        request.setCreatedByAdmin(getLoggedInAdmin()); // 🔥 Link client to this admin
+        request.setCreatedByProjectManager(getLoggedInProjectManager());
 
         if (request.getPassword() == null || request.getPassword().isBlank()) {
             throw new RuntimeException("Password is required");
@@ -77,7 +74,6 @@ public class AdminService {
     }
 
     public User updateClient(Long id, User updated) {
-
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Client not found"));
 
@@ -92,10 +88,9 @@ public class AdminService {
         userRepository.deleteById(id);
     }
 
-
     public User createDeveloper(User request) {
         request.setRole(Role.DEVELOPER);
-        request.setCreatedByAdmin(getLoggedInAdmin()); // 🔥 Link developer to this admin
+        request.setCreatedByProjectManager(getLoggedInProjectManager());
 
         if (request.getPassword() == null || request.getPassword().isBlank()) {
             throw new RuntimeException("Password is required");
@@ -105,7 +100,6 @@ public class AdminService {
     }
 
     public User updateDeveloper(Long id, User updated) {
-
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Developer not found"));
 
@@ -119,12 +113,4 @@ public class AdminService {
     public void deleteDeveloper(Long id) {
         userRepository.deleteById(id);
     }
-
-
-
-
-
-
-
-
 }

@@ -1,6 +1,5 @@
 package ctts.controller;
 
-
 import ctts.dto.ProfileResponse;
 import ctts.dto.ProfileUpdateRequest;
 import ctts.service.ProfileService;
@@ -16,8 +15,9 @@ public class ProfileController {
 
     private final ProfileService profileService;
 
-    @GetMapping("/admin/profile")
-    public ProfileResponse adminProfile() {
+    // 🔥 Changed from /admin/profile
+    @GetMapping("/project-manager/profile")
+    public ProfileResponse projectManagerProfile() {
         return profileService.getProfile();
     }
 
@@ -42,9 +42,7 @@ public class ProfileController {
             String result = profileService.changePassword(request.getOldPassword(), request.getNewPassword());
             return ResponseEntity.ok(result);
         } catch (RuntimeException e) {
-            // Returns a 400 Bad Request if the old password was wrong
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
-
 }

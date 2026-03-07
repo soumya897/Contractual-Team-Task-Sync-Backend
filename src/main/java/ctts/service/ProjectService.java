@@ -23,24 +23,17 @@ public class ProjectService {
     private final UserRepository userRepository;
     private final NotificationService notificationService;
 
-    // 🔥 ADMIN → Create Project
+    // 🔥 PROJECT MANAGER → Create Project
     public Project createProject(ProjectRequest request) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User pm = userRepository.findByEmail(email).orElseThrow();
 
-        String email = SecurityContextHolder.getContext()
-                .getAuthentication()
-                .getName();
-
-        User admin = userRepository.findByEmail(email).orElseThrow();
-
-        if (admin.getRole() != Role.ADMIN) {
-            throw new RuntimeException("Only admin can create project");
+        if (pm.getRole() != Role.PROJECT_MANAGER) {
+            throw new RuntimeException("Only project manager can create project");
         }
 
-        User client = userRepository.findById(request.getClientId())
-                .orElseThrow();
-
-        List<User> developers =
-                userRepository.findAllById(request.getDeveloperIds());
+        User client = userRepository.findById(request.getClientId()).orElseThrow();
+        List<User> developers = userRepository.findAllById(request.getDeveloperIds());
 
         Project project = Project.builder()
                 .title(request.getTitle())
@@ -48,66 +41,49 @@ public class ProjectService {
                 .status(ProjectStatus.ONGOING)
                 .client(client)
                 .developers(developers)
-                .createdBy(admin)
+                .createdBy(pm)
                 .build();
 
         Project savedProject = projectRepository.save(project);
 
-        // 🔔 CLEAR NOTIFICATION: Who assigned what project
         for (User dev : developers) {
             notificationService.createNotification(
                     dev,
-                    "Admin " + admin.getName() + " assigned you to a new project: '" + savedProject.getTitle() + "'"
+                    "Project Manager " + pm.getName() + " assigned you to a new project: '" + savedProject.getTitle() + "'"
             );
         }
 
         return savedProject;
     }
 
-    // 🔥 UPDATE PROJECT
     public Project updateProject(Long projectId, ProjectRequest request) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
 
-        String email = SecurityContextHolder.getContext()
-                .getAuthentication()
-                .getName();
-
-        User currentUser = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        if (currentUser.getRole() != Role.ADMIN) {
-            throw new RuntimeException("Only admin can update project");
+        if (currentUser.getRole() != Role.PROJECT_MANAGER) {
+            throw new RuntimeException("Only project manager can update project");
         }
 
-        Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new RuntimeException("Project not found"));
-
-        // Store old developers (to detect new assignments)
+        Project project = projectRepository.findById(projectId).orElseThrow(() -> new RuntimeException("Project not found"));
         Set<User> oldDevelopers = new HashSet<>(project.getDevelopers());
 
-        // Update basic fields
         project.setTitle(request.getTitle());
         project.setDescription(request.getDescription());
         project.setStatus(request.getStatus());
 
-        // Update client
-        User client = userRepository.findById(request.getClientId())
-                .orElseThrow(() -> new RuntimeException("Client not found"));
+        User client = userRepository.findById(request.getClientId()).orElseThrow(() -> new RuntimeException("Client not found"));
         project.setClient(client);
 
-        // Update developers
-        List<User> newDevelopers =
-                userRepository.findAllById(request.getDeveloperIds());
-
+        List<User> newDevelopers = userRepository.findAllById(request.getDeveloperIds());
         project.setDevelopers(newDevelopers);
 
         Project updatedProject = projectRepository.save(project);
 
-        // 🔔 CLEAR NOTIFICATION: Notify ONLY newly added developers
         for (User dev : newDevelopers) {
             if (!oldDevelopers.contains(dev)) {
                 notificationService.createNotification(
                         dev,
-                        "Admin " + currentUser.getName() + " added you to the project: '" + updatedProject.getTitle() + "'"
+                        "Project Manager " + currentUser.getName() + " added you to the project: '" + updatedProject.getTitle() + "'"
                 );
             }
         }
@@ -116,56 +92,36 @@ public class ProjectService {
     }
 
     public void deleteProject(Long projectId) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
 
-        String email = SecurityContextHolder.getContext()
-                .getAuthentication()
-                .getName();
-
-        User currentUser = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        if (currentUser.getRole() != Role.ADMIN) {
-            throw new RuntimeException("Only admin can delete project");
+        if (currentUser.getRole() != Role.PROJECT_MANAGER) {
+            throw new RuntimeException("Only project manager can delete project");
         }
 
-        Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new RuntimeException("Project not found"));
-
+        Project project = projectRepository.findById(projectId).orElseThrow(() -> new RuntimeException("Project not found"));
         projectRepository.delete(project);
     }
 
-    // 🔥 ROLE BASED VIEW
     public List<Project> getProjectsForLoggedUser() {
-
-        String email = SecurityContextHolder.getContext()
-                .getAuthentication()
-                .getName();
-
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(email).orElseThrow();
 
-        if (user.getRole() == Role.ADMIN) {
+        if (user.getRole() == Role.PROJECT_MANAGER) {
             return projectRepository.findByCreatedBy(user);
         }
-
         if (user.getRole() == Role.CLIENT) {
             return projectRepository.findByClient(user);
         }
-
         if (user.getRole() == Role.DEVELOPER) {
             return projectRepository.findByDevelopersContaining(user);
         }
-
         return List.of();
     }
 
     public List<Project> getProjectsForDeveloper() {
-
-        String email = SecurityContextHolder.getContext()
-                .getAuthentication()
-                .getName();
-
-        User developer = userRepository.findByEmail(email)
-                .orElseThrow();
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User developer = userRepository.findByEmail(email).orElseThrow();
 
         if (developer.getRole() != Role.DEVELOPER) {
             throw new RuntimeException("Only developer can access this");
@@ -175,13 +131,8 @@ public class ProjectService {
     }
 
     public List<Project> getProjectsForClient() {
-
-        String email = SecurityContextHolder.getContext()
-                .getAuthentication()
-                .getName();
-
-        User client = userRepository.findByEmail(email)
-                .orElseThrow();
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User client = userRepository.findByEmail(email).orElseThrow();
 
         if (client.getRole() != Role.CLIENT) {
             throw new RuntimeException("Only client can access this");
@@ -189,5 +140,4 @@ public class ProjectService {
 
         return projectRepository.findByClient(client);
     }
-
 }

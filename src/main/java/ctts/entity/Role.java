@@ -1,7 +1,7 @@
 package ctts.entity;
 
 public enum Role {
-    ADMIN,
+    PROJECT_MANAGER,
     CLIENT,
     DEVELOPER
 }

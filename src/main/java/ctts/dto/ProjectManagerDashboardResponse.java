@@ -5,7 +5,7 @@ import lombok.Data;
 
 @Data
 @AllArgsConstructor
-public class AdminDashboardResponse {
+public class ProjectManagerDashboardResponse {
 
     private long totalProjects;
     private long completedProjects;

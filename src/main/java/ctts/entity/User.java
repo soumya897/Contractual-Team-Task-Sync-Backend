@@ -34,10 +34,10 @@ public class User {
     @Column(nullable = false)
     private Role role;
 
-    // 🔥 ADD THIS: Links a client/developer to the admin who created them
+    // 🔥 Updated to Project Manager
     @ManyToOne
-    @JoinColumn(name = "created_by_admin_id")
+    @JoinColumn(name = "created_by_pm_id")
     @JsonIgnore
-    private User createdByAdmin;
+    private User createdByProjectManager;
 
 }

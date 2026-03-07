@@ -28,31 +28,21 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final CustomUserDetailsService customUserDetailsService;
 
-    // ✅ Password Encoder
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    // ✅ Authentication Provider (VERY IMPORTANT)
     @Bean
     public AuthenticationProvider authenticationProvider() {
-
-        DaoAuthenticationProvider provider =
-                new DaoAuthenticationProvider(customUserDetailsService);
-
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(customUserDetailsService);
         provider.setPasswordEncoder(passwordEncoder());
-
         return provider;
     }
 
-
-    // ✅ CORS
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-
         CorsConfiguration configuration = new CorsConfiguration();
-
         configuration.setAllowedOrigins(List.of(
                 "http://localhost:5173",
                 "http://localhost:5174",
@@ -60,56 +50,32 @@ public class SecurityConfig {
                 "https://contractual-team-task-sync-frontend.vercel.app",
                 "https://contractual-team-task-sync-frontend-two.vercel.app"
         ));
-
-        configuration.setAllowedMethods(List.of(
-                "GET", "POST", "PUT", "DELETE", "OPTIONS"
-        ));
-
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
 
-        UrlBasedCorsConfigurationSource source =
-                new UrlBasedCorsConfigurationSource();
-
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
-
         return source;
     }
 
-    // ✅ Security Filter Chain
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-
         http
                 .cors(cors -> {})
                 .csrf(csrf -> csrf.disable())
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
-
-                // 🔥 VERY IMPORTANT LINE
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider())
-
                 .authorizeHttpRequests(auth -> auth
-
-                        // 🔓 Public APIs
                         .requestMatchers("/api/auth/**", "/health").permitAll()
 
-                        // 🔐 Admin APIs
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        // 🔐 Updated to Project Manager
+                        .requestMatchers("/api/project-manager/**").hasRole("PROJECT_MANAGER")
 
-                        // 🔐 Client APIs
                         .requestMatchers("/api/client/**").hasRole("CLIENT")
-
-                        // 🔐 Developer APIs
                         .requestMatchers("/api/developer/**").hasRole("DEVELOPER")
-
-                        // 🔐 Project APIs
                         .requestMatchers("/api/projects/**").authenticated()
-
-                        // 🔐 Task APIs
                         .requestMatchers("/api/tasks/**").authenticated()
-
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
